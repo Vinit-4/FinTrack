@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "FinTrack API",
+    "description": "Register, log in, manage transactions and read analytics. Login and Register automatically save the JWT into the {{token}} collection variable, so every other request is already authorised.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "transactionId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}",
+                  "pm.test('account created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo User\",\n  \"email\": \"demo@fintrack.local\",\n  \"password\": \"Demo@12345\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}",
+                  "pm.test('logged in', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@fintrack.local\",\n  \"password\": \"Demo@12345\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('transactionId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"EXPENSE\",\n  \"amount\": 450.50,\n  \"category\": \"FOOD\",\n  \"description\": \"Weekly groceries\",\n  \"transactionDate\": \"2026-03-12\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List transactions",
+          "request": { "method": "GET", "url": "{{baseUrl}}/transactions" }
+        },
+        {
+          "name": "List transactions (filtered)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/transactions?type=EXPENSE&category=FOOD&month=3&year=2026&sort=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions"],
+              "query": [
+                { "key": "type", "value": "EXPENSE" },
+                { "key": "category", "value": "FOOD" },
+                { "key": "month", "value": "3" },
+                { "key": "year", "value": "2026" },
+                { "key": "sort", "value": "desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get transaction by id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/transactions/{{transactionId}}" }
+        },
+        {
+          "name": "Update transaction",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transactions/{{transactionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"EXPENSE\",\n  \"amount\": 520.00,\n  \"category\": \"FOOD\",\n  \"description\": \"Weekly groceries (corrected)\",\n  \"transactionDate\": \"2026-03-12\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete transaction",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/transactions/{{transactionId}}" }
+        },
+        {
+          "name": "Invalid amount (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"EXPENSE\",\n  \"amount\": 0,\n  \"category\": \"FOOD\",\n  \"transactionDate\": \"2026-03-12\"\n}"
+            }
+          }
+        },
+        {
+          "name": "No token (expect 401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard & Analytics",
+      "item": [
+        {
+          "name": "Dashboard summary",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/summary" }
+        },
+        {
+          "name": "Category breakdown",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/categories?year=2026&month=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "categories"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "3" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Monthly summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/monthly-summary?year=2026&month=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "monthly-summary"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "3" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Income vs expense series",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/monthly?months=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "monthly"],
+              "query": [{ "key": "months", "value": "6" }]
+            }
+          }
+        },
+        {
+          "name": "Categories list",
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories" }
+        }
+      ]
+    }
+  ]
+}
